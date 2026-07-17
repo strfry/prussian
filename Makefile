@@ -16,7 +16,7 @@ help:
 	@echo '  make clean   - remove all cloned module directories'
 
 sync:
-	@while IFS=$$'\t' read -r name url branch rev; do \
+	@while IFS=$$(printf '\t') read -r name url branch rev; do \
 	  [ -z "$$name" ] && continue; \
 	  [ -d "$$name/.git" ] || git clone "$$url" "$$name"; \
 	  git -C "$$name" fetch --quiet origin; \
@@ -28,7 +28,7 @@ sync:
 	done < $(MANIFEST)
 
 status:
-	@while IFS=$$'\t' read -r name url branch rev; do \
+	@while IFS=$$(printf '\t') read -r name url branch rev; do \
 	  [ -z "$$name" ] && continue; \
 	  cur=$$(git -C "$$name" rev-parse --short HEAD 2>/dev/null || echo '—'); \
 	  mark=' '; [ "$$cur" = "$$rev" ] && mark='=' || mark='*'; \
@@ -37,7 +37,7 @@ status:
 
 pin:
 	@tmp=$$(mktemp); \
-	while IFS=$$'\t' read -r name url branch rev; do \
+	while IFS=$$(printf '\t') read -r name url branch rev; do \
 	  [ -z "$$name" ] && continue; \
 	  new=$$(git -C "$$name" rev-parse --short HEAD 2>/dev/null || echo "$$rev"); \
 	  printf '%s\t%s\t%s\t%s\n' "$$name" "$$url" "$$branch" "$$new" >> $$tmp; \
@@ -49,7 +49,7 @@ dev: sync
 	cd prussian-mcp && uv sync
 
 clean:
-	@while IFS=$$'\t' read -r name url branch rev; do \
+	@while IFS=$$(printf '\t') read -r name url branch rev; do \
 	  [ -z "$$name" ] && continue; \
 	  rm -rf "$$name"; \
 	done < $(MANIFEST)
