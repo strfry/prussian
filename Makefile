@@ -5,15 +5,17 @@
 
 MANIFEST := repos.tsv
 
-.PHONY: help sync status pin dev clean
+.PHONY: help sync status pin dev download build-eval clean
 
 help:
 	@echo 'Prussian binder targets:'
-	@echo '  make sync    - clone missing modules, fetch, checkout pinned rev'
-	@echo '  make status  - show pinned vs current rev per module'
-	@echo '  make pin     - write current HEADs back into $(MANIFEST)'
-	@echo '  make dev     - sync + wire the Python dev env (uv sync in prussian-mcp)'
-	@echo '  make clean   - remove all cloned module directories'
+	@echo '  make sync       - clone missing modules, fetch, checkout pinned rev'
+	@echo '  make status     - show pinned vs current rev per module'
+	@echo '  make pin        - write current HEADs back into $(MANIFEST)'
+	@echo '  make dev        - sync + wire the Python dev env (uv sync in mcp)'
+	@echo '  make download   - fetch corpus artifacts from GitHub Releases (no scraping)'
+	@echo '  make build-eval - full setup for eval: sync, download, FST build, Python env'
+	@echo '  make clean      - remove all cloned module directories'
 
 sync:
 	@while IFS=$$(printf '\t') read -r name url branch rev; do \
@@ -46,7 +48,26 @@ pin:
 	mv $$tmp $(MANIFEST)
 
 dev: sync
-	cd prussian-mcp && uv sync
+	cd mcp && uv sync
+
+download:
+	@mkdir -p corpus/parsed fst/data/external
+	gh release download --repo strfry/prussian-corpus \
+	    --pattern 'twanksta_entries.json' --dir corpus/parsed --clobber
+	gh release download --repo strfry/prussian-corpus \
+	    --pattern 'prusaspira_entries.json' --dir corpus/parsed --clobber
+	@set -e; \
+	 tmp=$$(mktemp -d); \
+	 gh release download --repo strfry/prussian-corpus \
+	     --pattern '*.tar.zst' --dir $$tmp --clobber; \
+	 tar --zstd -xf $$tmp/*.tar.zst -C corpus/; \
+	 rm -rf $$tmp
+	cp corpus/parsed/twanksta_entries.json fst/data/external/
+
+build-eval: sync download
+	$(MAKE) -C fst gen all cg3-sets cg3-check conllu
+	cd mcp && uv sync
+	cd eval && uv sync
 
 clean:
 	@while IFS=$$(printf '\t') read -r name url branch rev; do \

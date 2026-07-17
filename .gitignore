@@ -1,8 +1,8 @@
 # Cloned module repos (managed by `make sync`, each is its own git repo).
 # The binder only tracks the manifest — never the module contents.
-/prussian-fst/
-/prussian-mcp/
-/prussian-corpus/
-/prussian-lora/
-/prussian-bot/
-/prussian-bert/
+/fst/
+/mcp/
+/corpus/
+/lora/
+/bot/
+/eval/
