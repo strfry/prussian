@@ -65,7 +65,7 @@ download:
 	cp corpus/parsed/twanksta_entries.json fst/data/external/
 
 build-eval: sync download
-	$(MAKE) -C fst gen all cg3-sets cg3-check conllu
+	$(MAKE) -C fst/fst gen all cg3-sets cg3-check conllu
 	cd mcp && uv sync
 	cd eval && uv sync
 
