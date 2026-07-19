@@ -5,13 +5,14 @@
 
 MANIFEST := repos.tsv
 
-.PHONY: help sync status pin dev download download-embeddings build-eval clean
+.PHONY: help sync status pin push dev download download-embeddings build-eval clean
 
 help:
 	@echo 'Prussian binder targets:'
 	@echo '  make sync       - clone missing modules, fetch, checkout pinned rev'
 	@echo '  make status     - show pinned vs current rev per module'
-	@echo '  make pin        - write current HEADs back into $(MANIFEST)'
+  @echo '  make pin        - write current HEADs back into $(MANIFEST)'
+	@echo '  make push       - push each module repo (detached HEAD → origin/<branch>)'
 	@echo '  make dev        - sync + wire the Python dev env (uv sync in mcp)'
 	@echo '  make download   - fetch corpus + embeddings artifacts from GitHub Releases'
 	@echo '  make download-embeddings - fetch only fastembed artifacts'
@@ -47,6 +48,13 @@ pin:
 	  [ "$$new" != "$$rev" ] && echo "$$name: $$rev -> $$new"; \
 	done < $(MANIFEST); \
 	mv $$tmp $(MANIFEST)
+
+push:
+	@while IFS=$$(printf '\t') read -r name url branch rev; do \
+	  [ -z "$$name" ] && continue; \
+	  echo "=== $$name ==="; \
+	  git -C "$$name" push origin "HEAD:$$branch"; \
+	done < $(MANIFEST)
 
 dev: sync
 	cd mcp && uv sync
