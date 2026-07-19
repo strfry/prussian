@@ -5,7 +5,7 @@
 
 MANIFEST := repos.tsv
 
-.PHONY: help sync status pin dev download build-eval clean
+.PHONY: help sync status pin dev download download-embeddings build-eval clean
 
 help:
 	@echo 'Prussian binder targets:'
@@ -13,7 +13,8 @@ help:
 	@echo '  make status     - show pinned vs current rev per module'
 	@echo '  make pin        - write current HEADs back into $(MANIFEST)'
 	@echo '  make dev        - sync + wire the Python dev env (uv sync in mcp)'
-	@echo '  make download   - fetch corpus artifacts from GitHub Releases (no scraping)'
+	@echo '  make download   - fetch corpus + embeddings artifacts from GitHub Releases'
+	@echo '  make download-embeddings - fetch only fastembed artifacts'
 	@echo '  make build-eval - full setup for eval: sync, download, FST build, Python env'
 	@echo '  make clean      - remove all cloned module directories'
 
@@ -50,7 +51,7 @@ pin:
 dev: sync
 	cd mcp && uv sync
 
-download:
+download: download-embeddings
 	@mkdir -p corpus/parsed fst/data/external
 	gh release download --repo strfry/prussian-corpus \
 	    --pattern 'twanksta_entries.json' --dir corpus/parsed --clobber
@@ -63,6 +64,11 @@ download:
 	 tar --zstd -xf $$tmp/*.tar.zst -C corpus/; \
 	 rm -rf $$tmp
 	cp corpus/parsed/twanksta_entries.json fst/data/external/
+
+download-embeddings:
+	@mkdir -p embeddings/data
+	gh release download --repo strfry/prussian-embeddings \
+	    --pattern 'embeddings_fastembed.*' --dir embeddings/data --clobber
 
 build-eval: sync download
 	$(MAKE) -C fst/fst gen all cg3-sets cg3-check conllu
