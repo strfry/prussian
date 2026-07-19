@@ -5,23 +5,26 @@
 
 MANIFEST := repos.tsv
 
-.PHONY: help sync status pin push dev download download-embeddings build-eval clean
+LOOP_START = @while IFS=$$(printf '\t') read -r name url branch rev; do [ -z "$$name" ] && continue;
+LOOP_END   = done < $(MANIFEST)
+
+.PHONY: help sync status pin push git-status dev download download-embeddings build-eval clean
 
 help:
 	@echo 'Prussian binder targets:'
-	@echo '  make sync       - clone missing modules, fetch, checkout pinned rev'
-	@echo '  make status     - show pinned vs current rev per module'
-  @echo '  make pin        - write current HEADs back into $(MANIFEST)'
-	@echo '  make push       - push each module repo (detached HEAD → origin/<branch>)'
-	@echo '  make dev        - sync + wire the Python dev env (uv sync in mcp)'
-	@echo '  make download   - fetch corpus + embeddings artifacts from GitHub Releases'
+	@echo '  make sync        - clone missing modules, fetch, checkout pinned rev'
+	@echo '  make status      - show pinned vs current rev per module'
+	@echo '  make pin         - write current HEADs back into $(MANIFEST)'
+	@echo '  make push        - push each module repo (detached HEAD → origin/<branch>)'
+	@echo '  make git-status  - run git status in each module repo'
+	@echo '  make dev         - sync + wire the Python dev env (uv sync in mcp)'
+	@echo '  make download    - fetch corpus + embeddings artifacts from GitHub Releases'
 	@echo '  make download-embeddings - fetch only fastembed artifacts'
-	@echo '  make build-eval - full setup for eval: sync, download, FST build, Python env'
-	@echo '  make clean      - remove all cloned module directories'
+	@echo '  make build-eval  - full setup for eval: sync, download, FST build, Python env'
+	@echo '  make clean       - remove all cloned module directories'
 
 sync:
-	@while IFS=$$(printf '\t') read -r name url branch rev; do \
-	  [ -z "$$name" ] && continue; \
+	$(LOOP_START) \
 	  [ -d "$$name/.git" ] || git clone "$$url" "$$name"; \
 	  git -C "$$name" fetch --quiet origin; \
 	  if [ -n "$$(git -C "$$name" status --porcelain)" ]; then \
@@ -29,15 +32,14 @@ sync:
 	  else \
 	    git -C "$$name" checkout --quiet "$$rev" && echo "$$name @ $$rev"; \
 	  fi; \
-	done < $(MANIFEST)
+	$(LOOP_END)
 
 status:
-	@while IFS=$$(printf '\t') read -r name url branch rev; do \
-	  [ -z "$$name" ] && continue; \
+	$(LOOP_START) \
 	  cur=$$(git -C "$$name" rev-parse --short HEAD 2>/dev/null || echo '—'); \
 	  mark=' '; [ "$$cur" = "$$rev" ] && mark='=' || mark='*'; \
 	  printf '%s %-16s pinned=%-9s current=%-9s (%s)\n' "$$mark" "$$name" "$$rev" "$$cur" "$$branch"; \
-	done < $(MANIFEST)
+	$(LOOP_END)
 
 pin:
 	@tmp=$$(mktemp); \
@@ -50,11 +52,10 @@ pin:
 	mv $$tmp $(MANIFEST)
 
 push:
-	@while IFS=$$(printf '\t') read -r name url branch rev; do \
-	  [ -z "$$name" ] && continue; \
-	  echo "=== $$name ==="; \
-	  git -C "$$name" push origin "HEAD:$$branch"; \
-	done < $(MANIFEST)
+	$(LOOP_START) echo "=== $$name ==="; git -C "$$name" push origin "HEAD:$$branch"; $(LOOP_END)
+
+git-status:
+	$(LOOP_START) git -C "$$name" status; $(LOOP_END)
 
 dev: sync
 	cd mcp && uv sync
@@ -84,7 +85,4 @@ build-eval: sync download
 	cd eval && uv sync
 
 clean:
-	@while IFS=$$(printf '\t') read -r name url branch rev; do \
-	  [ -z "$$name" ] && continue; \
-	  rm -rf "$$name"; \
-	done < $(MANIFEST)
+	$(LOOP_START) rm -rf "$$name"; $(LOOP_END)
