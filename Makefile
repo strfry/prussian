@@ -37,8 +37,10 @@ sync:
 status:
 	$(LOOP_START) \
 	  cur=$$(git -C "$$name" rev-parse --short HEAD 2>/dev/null || echo '—'); \
-	  mark=' '; [ "$$cur" = "$$rev" ] && mark='=' || mark='*'; \
-	  printf '%s %-16s pinned=%-9s current=%-9s (%s)\n' "$$mark" "$$name" "$$rev" "$$cur" "$$branch"; \
+	  dirty=$$(git -C "$$name" status --porcelain); \
+	  rmark=' '; [ "$$cur" != "$$rev" ] && rmark='*'; \
+	  dmark=' '; [ -n "$$dirty" ] && dmark='~'; \
+	  printf '%s%s %-16s pinned=%-9s current=%-9s (%s)\n' "$$rmark" "$$dmark" "$$name" "$$rev" "$$cur" "$$branch"; \
 	$(LOOP_END)
 
 pin:
@@ -60,24 +62,32 @@ git-status:
 dev: sync
 	cd mcp && uv sync
 
+# GitHub-Release-Assets OHNE die GitHub-API laden (die 60 Req/h unauth reißen sonst
+# das Rate-Limit) und ohne gh/Token:
+#   1. latest-Tag über den /releases/latest-Redirect (Location-Header) auflösen
+#   2. Asset-Namen aus der /expanded_assets/<tag>-HTML lesen und per ERE filtern
+#   3. Assets direkt vom Release-CDN /releases/download/<tag>/<name> ziehen
+# Alle drei Schritte laufen über github.com (nicht api.github.com) → kein API-Limit.
+# Aufruf: $(call gh_dl,<owner/repo>,<name-regex (ERE)>,<zieldir>)
+define gh_dl
+set -eu; repo='$(1)'; pat='$(2)'; dir='$(3)'; mkdir -p "$$dir"; \
+tag=$$(curl -fsSI "https://github.com/$$repo/releases/latest" | tr -d '\r' | sed -n 's#^[Ll]ocation:.*/tag/##p'); \
+[ -n "$$tag" ] || { echo "$$repo: latest-Tag nicht auflösbar" >&2; exit 1; }; \
+names=$$(curl -fsSL "https://github.com/$$repo/releases/expanded_assets/$$tag" | grep -oE 'releases/download/[^"]+' | sed 's#.*/##' | sort -u | grep -E "$$pat"); \
+[ -n "$$names" ] || { echo "$$repo@$$tag: keine Assets für /$$pat/" >&2; exit 1; }; \
+for n in $$names; do echo "  $$repo@$$tag -> $$n"; curl -fSL "https://github.com/$$repo/releases/download/$$tag/$$n" -o "$$dir/$$n"; done
+endef
+
 download: download-embeddings
 	@mkdir -p corpus/parsed fst/data/external
-	gh release download --repo strfry/prussian-corpus \
-	    --pattern 'twanksta_entries.json' --dir corpus/parsed --clobber
-	gh release download --repo strfry/prussian-corpus \
-	    --pattern 'prusaspira_entries.json' --dir corpus/parsed --clobber
-	@set -e; \
-	 tmp=$$(mktemp -d); \
-	 gh release download --repo strfry/prussian-corpus \
-	     --pattern '*.tar.zst' --dir $$tmp --clobber; \
-	 tar --zstd -xf $$tmp/*.tar.zst -C corpus/; \
-	 rm -rf $$tmp
+	@$(call gh_dl,strfry/prussian-corpus,^(twanksta|prusaspira)_entries\.json$$,corpus/parsed)
+	@$(call gh_dl,strfry/prussian-corpus,\.tar\.zst$$,corpus/_dl)
+	@set -e; tar --zstd -xf corpus/_dl/*.tar.zst -C corpus/; rm -rf corpus/_dl
 	cp corpus/parsed/twanksta_entries.json fst/data/external/
 
 download-embeddings:
 	@mkdir -p embeddings/data
-	gh release download --repo strfry/prussian-embeddings \
-	    --pattern 'embeddings_fastembed.*' --dir embeddings/data --clobber
+	@$(call gh_dl,strfry/prussian-embeddings,^embeddings_fastembed\.,embeddings/data)
 
 build-eval: sync download
 	$(MAKE) -C fst/fst gen all cg3-sets cg3-check conllu
