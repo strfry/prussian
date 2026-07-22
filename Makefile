@@ -52,6 +52,7 @@ pin:
 	  [ "$$new" != "$$rev" ] && echo "$$name: $$rev -> $$new"; \
 	done < $(MANIFEST); \
 	mv $$tmp $(MANIFEST)
+	git commit repos.tsv && git push repos.tsv
 
 push:
 	$(LOOP_START) echo "=== $$name ==="; git -C "$$name" push origin "HEAD:$$branch"; $(LOOP_END)
