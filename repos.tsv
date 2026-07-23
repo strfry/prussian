@@ -1,16 +1,7 @@
 fst	https://github.com/strfry/prussian-fst.git	main	d7a3219
-<<<<<<< HEAD			
 mcp	https://github.com/strfry/prussian-mcp.git	main	0580e0c
 corpus	https://github.com/strfry/prussian-corpus.git	master	fbe7459
 lora	https://github.com/strfry/prussian-lora.git	main	3ad80d5
 bot	https://github.com/strfry/prussian-bot.git	main	4a925f7
 eval	https://github.com/strfry/prussian-eval.git	main	6bb575a
 embeddings	https://github.com/strfry/prussian-embeddings.git	main	13a8499
-=======			
-mcp	https://github.com/strfry/prussian-mcp.git	main	0580e0c
-corpus	https://github.com/strfry/prussian-corpus.git	master	fbe7459
-lora	https://github.com/strfry/prussian-lora.git	main	3ad80d5
-bot	https://github.com/strfry/prussian-bot.git	main	4a925f7
-eval	https://github.com/strfry/prussian-eval.git	main	6bb575a
-embeddings	https://github.com/strfry/prussian-embeddings.git	main	13a8499
->>>>>>> 4389b3e (Pin new chunked embedding feature)			
