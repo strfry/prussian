@@ -81,7 +81,7 @@ endef
 
 download: download-embeddings
 	@mkdir -p corpus/parsed fst/data/external
-	@$(call gh_dl,strfry/prussian-corpus,^(twanksta|prusaspira)_entries\.json$$,corpus/parsed)
+	@$(call gh_dl,strfry/prussian-corpus,^(twanksta|prusaspira)(_entries\.json|\.nvh)$$,corpus/parsed)
 	@$(call gh_dl,strfry/prussian-corpus,\.tar\.zst$$,corpus/_dl)
 	@set -e; tar --zstd -xf corpus/_dl/*.tar.zst -C corpus/; rm -rf corpus/_dl
 	cp corpus/parsed/twanksta_entries.json fst/data/external/
@@ -91,7 +91,8 @@ download-embeddings:
 	@$(call gh_dl,strfry/prussian-embeddings,^embeddings_fastembed\.,embeddings/data)
 
 build-eval: sync download
-	$(MAKE) -C fst/fst gen all cg3-sets cg3-check conllu
+	[ -f corpus/parsed/twanksta_dmlex.nvh ] || (cd fst && uv run python gen/compress_forms.py)
+	$(MAKE) -C fst atoms all cg3-sets cg3-check conllu
 	cd mcp && uv sync
 	cd eval && uv sync
 
