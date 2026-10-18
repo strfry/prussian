@@ -8,7 +8,7 @@ MANIFEST := repos.tsv
 LOOP_START = @while IFS=$$(printf '\t') read -r name url branch rev; do [ -z "$$name" ] && continue;
 LOOP_END   = done < $(MANIFEST)
 
-.PHONY: help sync status pin push git-status dev download download-embeddings build-eval clean
+.PHONY: help sync status pin push git-status dev download build-eval clean
 
 help:
 	@echo 'Prussian binder targets:'
@@ -18,8 +18,7 @@ help:
 	@echo '  make push        - push each module repo (detached HEAD → origin/<branch>)'
 	@echo '  make git-status  - run git status in each module repo'
 	@echo '  make dev         - sync + wire the Python dev env (uv sync in mcp)'
-	@echo '  make download    - fetch corpus + embeddings artifacts from GitHub Releases'
-	@echo '  make download-embeddings - fetch only fastembed artifacts'
+	@echo '  make download    - fetch corpus artifacts from GitHub Releases'
 	@echo '  make build-eval  - full setup for eval: sync, download, FST build, Python env'
 	@echo '  make clean       - remove all cloned module directories'
 
@@ -79,16 +78,12 @@ names=$$(curl -fsSL "https://github.com/$$repo/releases/expanded_assets/$$tag" |
 for n in $$names; do echo "  $$repo@$$tag -> $$n"; curl -fSL "https://github.com/$$repo/releases/download/$$tag/$$n" -o "$$dir/$$n"; done
 endef
 
-download: download-embeddings
+download:
 	@mkdir -p corpus/parsed fst/data/external
 	@$(call gh_dl,strfry/prussian-corpus,^(twanksta|prusaspira)(_entries\.json|\.nvh)$$,corpus/parsed)
 	@$(call gh_dl,strfry/prussian-corpus,\.tar\.zst$$,corpus/_dl)
 	@set -e; tar --zstd -xf corpus/_dl/*.tar.zst -C corpus/; rm -rf corpus/_dl
 	cp corpus/parsed/twanksta_entries.json fst/data/external/
-
-download-embeddings:
-	@mkdir -p embeddings/data
-	@$(call gh_dl,strfry/prussian-embeddings,^embeddings_fastembed\.,embeddings/data)
 
 build-eval: sync download
 	[ -f corpus/parsed/twanksta_dmlex.nvh ] || (cd fst && uv run python gen/compress_forms.py)
