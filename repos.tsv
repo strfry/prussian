@@ -5,4 +5,5 @@ lora	https://github.com/strfry/prussian-lora.git	main	3ad80d5
 bot	https://github.com/strfry/prussian-bot.git	main	90e21b6
 eval	https://github.com/strfry/prussian-eval.git	main	6bb575a
 embeddings	https://github.com/strfry/prussian-embeddings.git	main	a30e1f9
-dictionary	https://github.com/strfry/wirdeins.git	main	43c3f46
+dictionary	https://github.com/strfry/prussian-dictionary.git	main	43c3f46
+wirdeins	https://github.com/strfry/prussian-wirdeins.git	main	c62bb89
